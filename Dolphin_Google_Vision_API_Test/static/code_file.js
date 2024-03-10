@@ -1,0 +1,1 @@
+basic.forever(function () {radio.setGroup(120);if (input.isGesture(Gesture.Shake)) {music.play(music.builtinPlayableSoundEffect(soundExpression.happy), music.PlaybackMode.UntilDone); } else if (input.soundLevel() >= 0) {radio.sendString("HI"); } else {}});radio.onReceivedString(function (receivedString) {if (receivedString == "HI") {  }});

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCB</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/styles/default.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css">
+
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        #upload-form {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        #uploaded-image {
+            max-width: 80%;
+            max-height: 400px;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #code-box {
+            position: relative;
+            width: 80%;
+            max-width: 800px;
+            background-color: #f8f8f8;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        #code-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        #copy-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        #copy-button i {
+            font-size: 1.5em;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>TCB Blockly Code Generation</h1>
+
+    <!-- Add form for file upload -->
+    <form method="post" enctype="multipart/form-data" id="upload-form">
+        <input type="file" name="file" accept=".png, .jpg, .jpeg, .gif" id="image-input" required>
+        <button type="button" onclick="uploadImage()">Upload Image</button>
+    </form>
+
+    <!-- Display the uploaded image -->
+    <img src="" alt="Uploaded Image" id="uploaded-image" style="display: none;">
+
+
+
+    <!-- <button onclick="runScript()">Run Python Script</button> -->
+
+    <button onclick="generateCode()">Generate Blockly Code</button>
+
+
+    <!-- Code box for displaying code content -->
+    <div id="code-box" style="display: none;">
+        <button id="copy-button" onclick="copyCode()"><i class="fas fa-copy"></i></button>
+        <pre>
+            <!-- <code id="code-content" class="javascript hljs"></code> -->
+            <!-- <code id="content" class="javascript hljs">{{ js_content }}</code> -->
+            <code id="content" class="javascript hljs">"Your code will appear here (press Generate Code button)."</code>
+
+        </pre>
+    </div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.10/clipboard.min.js"></script>
+
+<script>
+    hljs.highlightAll();
+
+    var clipboard = new ClipboardJS('#copy-button', {
+        text: function() {
+            return document.getElementById('content').textContent;
+        }
+    });
+
+    clipboard.on('success', function(e) {
+        alert('Code copied to clipboard!');
+        e.clearSelection();
+    });
+
+    clipboard.on('error', function(e) {
+        console.error('Copy failed:', e);
+    });
+
+    function generateCode() {
+        // Make AJAX request to Flask server to get updated js_content
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", "/get_js_content", true);
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                // Update js_content on the page
+                document.getElementById("content").textContent = xhr.responseText;
+                // Show the code box
+                document.getElementById("code-box").style.display = "block";
+            }
+        };
+        xhr.send();
+    }
+
+
+
+
+    function copyCode() {
+        clipboard.onClick({ target: document.getElementById('copy-button') });
+    }
+
+   
+    function runScript() {
+            fetch('/run_script')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    alert(data); // Display success message
+                })
+                .catch(error => {
+                    console.error('There was an error!', error);
+                    alert('Error running Python script. Please try again.');
+                });
+        }
+
+    function uploadImage() {
+        var input = document.getElementById('image-input');
+        var uploadedImage = document.getElementById('uploaded-image');
+        var codeBox = document.getElementById('code-box');
+
+        var file = input.files[0];
+        if (file) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedImage.src = e.target.result;
+                uploadedImage.style.display = 'block';
+                codeBox.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        var input = document.getElementById('image-input');
+        var filePath = input.value; // Get the file path
+    // Make an AJAX request to send the file path to Flask
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/process_image_path', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+            console.log('File path sent to server');
+        }
+    };
+    xhr.send(JSON.stringify({ file_path: filePath }));
+
+
+        runScript()
+    }
+    // document.getElementById('code-content').textContent = jsContent;
+
+    // fetch('./test.py')
+    // .then(response => response.text())
+    // .then(jsContent => {
+    //     // Display the JS content in the code box
+    //     document.getElementById('code-content').textContent = jsContent;
+    //     hljs.highlightBlock(document.getElementById('code-content'));
+    // })
+    // .catch(error => console.error('Error fetching JS content:', error));
+
+
+    // Fetch the content of the local JS file
+    // fetch('/Users/Poojita/Desktop/Dolphin_Google_Vision_API_Test/test.py')
+    //     .then(response => response.text())
+    //     .then(jsContent => {
+    //         // Display the JS content in the code box
+    //         document.getElementById('code-content').textContent = jsContent;
+    //         hljs.highlightBlock(document.getElementById('code-content'));
+    //     })
+    //     .catch(error => console.error('Error fetching JS content:', error));
+
+
+    </script>
+</body>
+</html>
